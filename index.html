@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wolf Labs - Skywatch A1</title>
+    
+    <!-- Tailwind CSS para Estilização Premium -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React e Babel para Execução no Browser -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #08080a;
+            color: white;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #1a1a1e; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #3b82f6; }
+
+        /* Animações de Transição de Slide */
+        .slide-enter { animation: slideIn 0.5s ease-out forwards; }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* Ajuste do Range Input */
+        input[type='range']::-webkit-slider-runnable-track { background: #000; border-radius: 9999px; height: 16px; border: 1px solid #1a1a1e; }
+        input[type='range']::-webkit-slider-thumb { 
+            -webkit-appearance: none; appearance: none; margin-top: -14px; 
+            background-color: #3b82f6; height: 44px; width: 44px; border-radius: 16px; 
+            border: 4px solid #08080a; cursor: pointer; box-shadow: 0 0 25px rgba(59,130,246,0.6); 
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        // --- ICON WRAPPER COMPONENT ---
+        const Icon = ({ name, size = 24, className = "" }) => {
+            useEffect(() => {
+                if (window.lucide) window.lucide.createIcons();
+            }, [name]);
+            return <i data-lucide={name} style={{ width: size, height: size }} className={className}></i>;
+        };
+
+        // --- DATASET: 32 SLIDES ---
+        const SLIDES_DATA = [
+            { id: 't-0', type: 'teacher_guide', section: 'MISSION BRIEF', title: 'GUIA DO INSTRUTOR', objectives: ['Dominar 10 termos climáticos', 'Gramática: IT IS vs IT ISN\'T', 'Lógica de Survival Gear', 'Apresentação de Previsão Global'], proTips: 'Force o uso de frases completas. "It is sunny" em vez de apenas "Sunny".' },
+            { id: 'c-1', type: 'cover', section: 'SYSTEM START', title: 'SKYWATCH', detail: 'Weather Surveillance Protocol A1' },
+            
+            // Vocabulário
+            { id: 'v-1', type: 'vocab', title: 'SUNNY', color: 'text-yellow-400', icon: 'sun', def: 'Céu limpo e sol forte.', example: 'It is a sunny day in Rio.' },
+            { id: 's-1', type: 'starter', title: 'SPEAKING: SUNNY', question: 'Gostas de dias ensolarados?', starter: 'Sim, eu gosto porque...', icon: 'sun', iconColor: 'text-yellow-400' },
+            
+            { id: 'v-2', type: 'vocab', title: 'RAINY', color: 'text-blue-500', icon: 'cloud-rain', def: 'Quando cai água das nuvens.', example: 'London is often rainy.' },
+            { id: 's-2', type: 'starter', title: 'SPEAKING: RAINY', question: 'Ficas em casa quando chove?', starter: 'Quando está a chover, eu...', icon: 'cloud-rain', iconColor: 'text-blue-500' },
+            
+            { id: 'v-3', type: 'vocab', title: 'WINDY', color: 'text-teal-400', icon: 'wind', def: 'Ar em movimento rápido.', example: 'Chicago is the windy city.' },
+            { id: 's-3', type: 'starter', title: 'SPEAKING: WINDY', question: 'Está vento hoje na tua cidade?', starter: 'Não, não está vento, está...', icon: 'wind', iconColor: 'text-teal-400' },
+            
+            { id: 'v-4', type: 'vocab', title: 'SNOWY', color: 'text-blue-100', icon: 'cloud-snow', def: 'Cristais de gelo a cair.', example: 'Canada is snowy in winter.' },
+            { id: 's-4', type: 'starter', title: 'SPEAKING: SNOWY', question: 'A neve é perigosa?', starter: 'Na minha opinião, a neve é...', icon: 'cloud-snow', iconColor: 'text-blue-200' },
+            
+            { id: 'v-5', type: 'vocab', title: 'STORMY', color: 'text-purple-500', icon: 'zap', def: 'Tempo mau com trovões.', example: 'The sky is very stormy.' },
+            { id: 's-5', type: 'starter', title: 'SPEAKING: STORMY', question: 'Tens medo de trovoadas?', starter: 'Sim, eu tenho medo / Não tenho...', icon: 'zap', iconColor: 'text-purple-500' },
+            
+            { id: 'v-6', type: 'vocab', title: 'FOGGY', color: 'text-zinc-500', icon: 'eye-off', def: 'Nuvens baixas que tiram a visão.', example: 'It is foggy; drive slowly.' },
+            { id: 's-6', type: 'starter', title: 'SPEAKING: FOGGY', question: 'Consegues conduzir com nevoeiro?', starter: 'Não, porque é difícil...', icon: 'eye-off', iconColor: 'text-zinc-400' },
+
+            // Gramática
+            { id: 'g-1', type: 'grammar', title: 'AFFIRMATIVE', formula: 'IT IS + [CONDIÇÃO]', example: 'It is sunny. It is cold.' },
+            { id: 'g-2', type: 'grammar', title: 'NEGATIVE', formula: "IT IS NOT (ISN'T)", example: "It isn't rainy. It isn't hot." },
+            { id: 'g-3', type: 'clickable_gap', sentence: 'O céu está 100% azul. _______ _______ ensolarado.', options: ['it is', 'is it', 'it isn\'t'], correct: 'it is' },
+            { id: 'g-4', type: 'drill', scenario: 'Não há chuva hoje.', transformation: 'Weather: It _______ _______ rainy.', answer: "isn't" },
+            { id: 'g-5', type: 'quiz', question: 'Qual é a forma negativa correta?', choices: ['It is no hot', 'It not hot', 'It isn\'t hot'], correct: 2 },
+
+            // Temperatura
+            { id: 't-1', type: 'temp_control', title: 'CONTROLO TÉRMICO' },
+            { id: 't-2', type: 'starter', title: 'CHECK DE TEMP', question: 'Está calor em tua casa agora?', starter: 'Sim, está muito calor / Não...', icon: 'thermometer', iconColor: 'text-red-500' },
+            { id: 't-3', type: 'quiz', question: '45°C é considerado:', choices: ['Muito frio', 'Moderado', 'Muito quente'], correct: 2 },
+
+            // Gear
+            { id: 'ge-1', type: 'gear_grid', items: [
+                { weather: 'Chuva', need: 'Umbrella', icon: 'umbrella' },
+                { weather: 'Sol', need: 'Sunglasses', icon: 'glasses' },
+                { weather: 'Neve', need: 'Coat', icon: 'shirt' },
+                { weather: 'Calor', need: 'Water', icon: 'droplets' }
+            ]},
+            { id: 'ge-2', type: 'matching', question: 'Ligue o clima ao acessório:' },
+            { id: 'ge-3', type: 'starter', title: 'LÓGICA DE GEAR', question: 'Precisas de um guarda-chuva hoje?', starter: 'Sim / Não, porque o tempo está...', icon: 'umbrella', iconColor: 'text-blue-500' },
+            { id: 'ge-4', type: 'drill', scenario: 'Lá fora está a nevar.', transformation: 'I need a _______ .', answer: 'Coat' },
+            { id: 'ge-5', type: 'quiz', question: 'O que precisas quando está sol?', choices: ['A coat', 'Sunglasses', 'Snow'], correct: 1 },
+
+            // Setores Globais
+            { id: 'sec-1', type: 'scan', city: 'LONDON', condition: 'RAINY & FOGGY', temp: '12°C' },
+            { id: 'sec-2', type: 'scan', city: 'DUBAI', condition: 'SUNNY & HOT', temp: '48°C' },
+            { id: 'sec-3', type: 'scan', city: 'ANTARCTICA', condition: 'SNOWY & WINDY', temp: '-35°C' },
+            { id: 'sec-4', type: 'scan', city: 'TOKYO', condition: 'STORMY', temp: '22°C' },
+
+            // Finalização
+            { id: 'f-1', type: 'broadcast', title: 'REPORTAGEM FINAL' },
+            { id: 'f-2', type: 'summary', title: 'ESTATÍSTICAS DA MISSÃO' },
+            { id: 'f-3', type: 'logout', title: 'SYSTEM OFFLINE' }
+        ];
+
+        const App = () => {
+            const [currentSlide, setCurrentSlide] = useState(0);
+            const [sidebarOpen, setSidebarOpen] = useState(true);
+            const [boardOpen, setBoardOpen] = useState(false);
+            const [notes, setNotes] = useState("");
+            const [revealed, setRevealed] = useState({});
+            const [temp, setTemp] = useState(25);
+            const [quizState, setQuizState] = useState({});
+
+            const slide = SLIDES_DATA[currentSlide];
+
+            const next = () => currentSlide < SLIDES_DATA.length - 1 && setCurrentSlide(s => s + 1);
+            const prev = () => currentSlide > 0 && setCurrentSlide(s => s - 1);
+
+            const renderContent = () => {
+                switch(slide.type) {
+                    case 'teacher_guide':
+                        return (
+                            <div className="grid md:grid-cols-2 gap-10 slide-enter">
+                                <div className="bg-white/5 p-10 rounded-[3rem] border border-white/10 space-y-6">
+                                    <h3 className="text-blue-500 font-black uppercase text-xs tracking-widest flex items-center gap-2"><Icon name="target" size={18}/> OBJETIVOS</h3>
+                                    <ul className="space-y-4">
+                                        {slide.objectives.map((o, i) => <li key={i} className="flex gap-4 items-center font-bold text-zinc-300"><div className="w-2 h-2 rounded-full bg-blue-500" /> {o}</li>)}
+                                    </ul>
+                                </div>
+                                <div className="bg-blue-600 p-12 rounded-[4rem] text-white space-y-6">
+                                    <h3 className="font-black uppercase text-xs tracking-widest flex items-center gap-2"><Icon name="lightbulb" size={18}/> PRO-TIP</h3>
+                                    <p className="text-3xl font-black italic">"{slide.proTips}"</p>
+                                </div>
+                            </div>
+                        );
+                    case 'cover':
+                        return (
+                            <div className="text-center space-y-8 slide-enter">
+                                <div className="w-40 h-40 bg-blue-600/10 border border-blue-600/20 rounded-[3rem] flex items-center justify-center mx-auto animate-pulse">
+                                    <Icon name="globe" size={80} className="text-blue-500" />
+                                </div>
+                                <h1 className="text-8xl md:text-[10rem] font-black italic tracking-tighter uppercase leading-[0.8]">SKYWATCH</h1>
+                                <p className="text-2xl font-bold text-zinc-500 uppercase tracking-[0.5em]">{slide.detail}</p>
+                            </div>
+                        );
+                    case 'vocab':
+                        return (
+                            <div className="grid md:grid-cols-2 gap-10 items-center slide-enter">
+                                <h2 className={`text-7xl md:text-[8rem] font-black italic uppercase tracking-tighter leading-none ${slide.color}`}>{slide.title}</h2>
+                                <div className="bg-zinc-900 p-12 rounded-[3rem] border-l-8 border-blue-600 space-y-8">
+                                    <div className="flex items-center gap-6">
+                                        <div className="p-4 bg-white/5 rounded-2xl"><Icon name={slide.icon} size={60} className={slide.color}/></div>
+                                        <p className="text-xl font-bold text-zinc-300">{slide.def}</p>
+                                    </div>
+                                    <p className="text-3xl font-black italic text-white">"{slide.example}"</p>
+                                </div>
+                            </div>
+                        );
+                    case 'starter':
+                        return (
+                            <div className="grid md:grid-cols-2 gap-8 slide-enter">
+                                <div className="bg-zinc-900 border-4 border-blue-600 p-12 rounded-[3.5rem] space-y-8">
+                                    <Icon name={slide.icon} size={80} className={slide.iconColor}/>
+                                    <h2 className="text-5xl font-black italic uppercase text-white">"{slide.question}"</h2>
+                                </div>
+                                <div className="bg-black border-4 border-dashed border-zinc-800 p-12 rounded-[3.5rem] flex flex-col justify-center text-center space-y-6">
+                                    <p className="text-blue-500 font-black uppercase text-[10px] tracking-[0.6em]">STARTER</p>
+                                    <p className="text-4xl font-black italic text-white">"{slide.starter}"</p>
+                                </div>
+                            </div>
+                        );
+                    case 'grammar':
+                        return (
+                            <div className="flex flex-col items-center space-y-12 slide-enter">
+                                <div className="bg-white text-black px-12 py-3 rounded-full text-4xl font-black italic uppercase -rotate-2">{slide.title}</div>
+                                <div className="w-full max-w-4xl bg-zinc-900 border-4 border-blue-600 p-20 rounded-[5rem] text-center space-y-10">
+                                    <h3 className="text-7xl md:text-8xl font-black italic uppercase text-blue-500">{slide.formula}</h3>
+                                    <p className="text-3xl font-black uppercase tracking-widest text-zinc-400 italic">"{slide.example}"</p>
+                                </div>
+                            </div>
+                        );
+                    case 'clickable_gap':
+                        return (
+                            <div className="max-w-4xl mx-auto space-y-16 text-center slide-enter">
+                                <div className="bg-black border-4 border-zinc-800 p-16 rounded-[4rem]">
+                                    <p className="text-5xl font-black italic text-white leading-relaxed">
+                                        {slide.sentence.split('_______').map((part, i, arr) => (
+                                            <React.Fragment key={i}>
+                                                {part}
+                                                {i < arr.length - 1 && (
+                                                    <span className={`inline-block mx-4 px-10 py-3 rounded-3xl border-4 border-dashed ${quizState[slide.id]?.selected ? 'bg-blue-600 border-blue-400 text-white' : 'bg-zinc-900 border-zinc-700 text-zinc-800'}`}>
+                                                        {quizState[slide.id]?.selected || '___'}
+                                                    </span>
+                                                )}
+                                            </React.Fragment>
+                                        ))}
+                                    </p>
+                                </div>
+                                <div className="flex justify-center gap-6">
+                                    {slide.options.map((opt, idx) => (
+                                        <button key={idx} onClick={() => setQuizState(p => ({...p, [slide.id]: {selected: opt}}))} className="px-12 py-5 rounded-full font-black text-2xl bg-white/5 border-2 border-white/10 hover:border-blue-500 transition-all">{opt}</button>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    case 'drill':
+                        return (
+                            <div className="space-y-10 max-w-4xl mx-auto slide-enter">
+                                <div className="bg-white/5 p-8 rounded-[2rem] text-center italic text-2xl font-bold opacity-50 line-through">Cenário: {slide.scenario}</div>
+                                <div className="bg-black border-4 border-dashed border-zinc-800 p-16 rounded-[4rem] text-center space-y-12">
+                                    <p className="text-5xl font-black italic uppercase text-white">{slide.transformation}</p>
+                                    <button onClick={() => setRevealed(p => ({...p, [slide.id]: !p[slide.id]}))} className="w-full max-w-md py-8 rounded-[2.5rem] bg-blue-600 text-white text-xl font-black uppercase tracking-widest">
+                                        {revealed[slide.id] ? slide.answer : 'VER RESPOSTA'}
+                                    </button>
+                                </div>
+                            </div>
+                        );
+                    case 'quiz':
+                        return (
+                            <div className="max-w-4xl mx-auto space-y-12 slide-enter">
+                                <h2 className="text-5xl font-black italic uppercase text-center">{slide.question}</h2>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    {slide.choices.map((c, i) => (
+                                        <button key={i} onClick={() => setQuizState(p => ({...p, [slide.id]: i}))} className={`p-10 rounded-[2.5rem] border-2 font-black text-xl transition-all ${quizState[slide.id] === i ? (i === slide.correct ? 'bg-green-600 border-green-400' : 'bg-red-600 border-red-400') : 'bg-white/5 border-white/10 hover:border-blue-500'}`}>{c}</button>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    case 'temp_control':
+                        return (
+                            <div className="text-center space-y-12 bg-zinc-900 p-20 rounded-[5rem] slide-enter">
+                                <h2 className="text-6xl font-black italic uppercase text-white">{slide.title}</h2>
+                                <div className="text-[12rem] font-black italic text-white tracking-tighter leading-none">{temp}<span className="text-blue-500 text-6xl">°C</span></div>
+                                <input type="range" min="-10" max="50" value={temp} onChange={(e) => setTemp(e.target.value)} className="w-full h-4 appearance-none accent-blue-600 cursor-pointer rounded-full" />
+                            </div>
+                        );
+                    case 'gear_grid':
+                        return (
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 slide-enter">
+                                {slide.items.map((item, i) => (
+                                    <div key={i} className="bg-zinc-900 p-10 rounded-[3.5rem] text-center space-y-6 border border-white/5 hover:border-blue-500 transition-all">
+                                        <div className="mx-auto w-20 h-20 bg-blue-600/10 rounded-3xl flex items-center justify-center text-blue-500"><Icon name={item.icon} size={40}/></div>
+                                        <h3 className="text-2xl font-black italic uppercase text-white">{item.need}</h3>
+                                        <p className="text-xs font-black uppercase text-zinc-500">{item.weather}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        );
+                    case 'scan':
+                        return (
+                            <div className="flex flex-col gap-10 slide-enter">
+                                <div className="flex justify-between items-center">
+                                    <div className="bg-blue-600 px-8 py-2 rounded-full font-black text-black italic text-xs tracking-widest">SECTOR SCANNER</div>
+                                    <div className="text-red-500 font-black animate-pulse flex items-center gap-2"><Icon name="radio" size={16}/> LIVE FEED</div>
+                                </div>
+                                <div className="grid md:grid-cols-2 gap-10 items-center">
+                                    <h2 className="text-8xl md:text-[8vw] font-black italic uppercase tracking-tighter text-white truncate">{slide.city}</h2>
+                                    <div className="bg-zinc-900 p-12 rounded-[4rem] space-y-4 border border-white/10 shadow-2xl">
+                                        <p className="text-blue-500 font-black text-6xl italic">{slide.temp}</p>
+                                        <div className="h-px bg-white/10" />
+                                        <p className="text-2xl font-black italic text-zinc-400 uppercase">{slide.condition}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    case 'broadcast':
+                        return (
+                            <div className="grid md:grid-cols-2 gap-12 slide-enter">
+                                <div className="bg-blue-600 p-16 rounded-[4.5rem] flex flex-col justify-center space-y-12">
+                                    <div className="flex items-center gap-5 bg-black px-8 py-3 rounded-full w-fit animate-pulse text-blue-500 font-black text-xs">ON AIR</div>
+                                    <h3 className="text-8xl font-black italic uppercase tracking-tighter leading-none">WORLD NEWS</h3>
+                                </div>
+                                <div className="bg-black border-4 border-zinc-900 p-12 rounded-[3.5rem] space-y-6">
+                                    <p className="text-blue-500 font-black uppercase text-xs tracking-widest">TELEPROMPTER:</p>
+                                    <div className="space-y-4 opacity-50">
+                                        <p className="text-xl font-bold italic">"Today in London it is rainy..."</p>
+                                        <p className="text-xl font-bold italic">"In Dubai, it isn't snowy, it is hot..."</p>
+                                        <p className="text-xl font-bold italic">"I need an umbrella for London..."</p>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    case 'summary':
+                        return (
+                            <div className="text-center space-y-12 slide-enter">
+                                <h2 className="text-[10rem] font-black italic uppercase tracking-tighter text-blue-600">FINISH</h2>
+                                <div className="flex justify-center gap-10">
+                                    <div className="p-8 bg-white/5 rounded-3xl border border-white/10 font-black italic">10 WEATHER WORDS</div>
+                                    <div className="p-8 bg-white/5 rounded-3xl border border-white/10 font-black italic">IT IS / ISN'T LOGIC</div>
+                                    <div className="p-8 bg-white/5 rounded-3xl border border-white/10 font-black italic">GEAR SELECTION</div>
+                                </div>
+                            </div>
+                        );
+                    case 'logout':
+                        return (
+                            <div className="text-center space-y-12 slide-enter">
+                                <div className="w-64 h-64 bg-white rounded-[5rem] flex items-center justify-center mx-auto rotate-3">
+                                    <Icon name="globe" size={140} className="text-black"/>
+                                </div>
+                                <h1 className="text-8xl font-black italic text-white uppercase">OFFLINE</h1>
+                            </div>
+                        );
+                    default: return null;
+                }
+            };
+
+            return (
+                <div className="flex h-screen w-full bg-[#08080a] text-white overflow-hidden">
+                    {/* SIDEBAR */}
+                    <aside className={`${sidebarOpen ? 'w-80' : 'w-0'} bg-black border-r border-white/5 transition-all duration-500 overflow-hidden shrink-0`}>
+                        <div className="p-10 w-80 h-full flex flex-col">
+                            <div className="flex items-center gap-4 mb-12">
+                                <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center font-black shadow-[0_0_30px_rgba(37,99,235,0.4)]">W</div>
+                                <span className="font-black text-2xl tracking-tighter italic">WOLF<span className="text-zinc-700">LABS</span></span>
+                            </div>
+                            <nav className="flex-1 space-y-2 overflow-y-auto custom-scrollbar">
+                                {SLIDES_DATA.map((s, i) => (
+                                    <button key={s.id} onClick={() => setCurrentSlide(i)} className={`w-full text-left px-5 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all ${currentSlide === i ? 'bg-blue-600 text-white' : 'text-zinc-700 hover:text-white hover:bg-white/5'}`}>
+                                        {String(i+1).padStart(2, '0')} {s.title || 'MODULE'}
+                                    </button>
+                                ))}
+                            </nav>
+                        </div>
+                    </aside>
+
+                    {/* MAIN */}
+                    <main className="flex-1 flex flex-col bg-gradient-to-br from-[#0d0d11] to-[#08080a]">
+                        <header className="h-24 px-12 flex items-center justify-between border-b border-white/5">
+                            <div className="flex items-center gap-6">
+                                <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-3 bg-white/5 rounded-2xl hover:bg-blue-600 transition-all"><Icon name="menu" size={20}/></button>
+                                <div className="truncate">
+                                    <p className="text-blue-500 font-black text-[10px] tracking-[0.4em] uppercase opacity-60">{slide.section || 'SKYWATCH A1'}</p>
+                                    <h2 className="text-2xl font-black italic uppercase tracking-tighter truncate">{slide.title || 'LOADING...'}</h2>
+                                </div>
+                            </div>
+                            <button onClick={() => setBoardOpen(!boardOpen)} className={`p-4 rounded-2xl flex items-center gap-3 transition-all ${boardOpen ? 'bg-blue-600 text-white' : 'bg-white/5 text-blue-500 border border-white/5 hover:border-blue-500'}`}>
+                                <Icon name="terminal" size={20}/><span className="text-[10px] font-black uppercase tracking-widest hidden md:inline">WHITEBOARD</span>
+                            </button>
+                        </header>
+
+                        <div className="flex-1 p-16 overflow-y-auto flex items-center justify-center custom-scrollbar">
+                            <div className="w-full max-w-6xl">{renderContent()}</div>
+                        </div>
+
+                        <footer className="h-28 px-12 flex items-center justify-between border-t border-white/5 bg-black/50">
+                            <button onClick={prev} disabled={currentSlide === 0} className="font-black text-[11px] tracking-widest uppercase flex items-center gap-4 text-zinc-700 hover:text-white disabled:opacity-0 transition-all">
+                                <Icon name="chevron-left" size={24}/> PREVIOUS
+                            </button>
+                            <div className="flex gap-2">
+                                {SLIDES_DATA.map((_, i) => (
+                                    <div key={i} className={`h-1.5 rounded-full transition-all ${currentSlide === i ? 'w-12 bg-blue-600' : 'w-2 bg-zinc-900'}`} />
+                                ))}
+                            </div>
+                            <button onClick={next} disabled={currentSlide === SLIDES_DATA.length - 1} className="bg-white text-black px-12 py-5 rounded-[2rem] font-black text-[11px] tracking-widest uppercase flex items-center gap-4 hover:bg-blue-600 hover:text-white transition-all">
+                                NEXT MODULE <Icon name="chevron-right" size={24}/>
+                            </button>
+                        </footer>
+                    </main>
+
+                    {/* WHITEBOARD */}
+                    <aside className={`${boardOpen ? 'w-[450px]' : 'w-0'} bg-black border-l border-white/10 transition-all duration-500 overflow-hidden flex flex-col`}>
+                        <div className="min-w-[450px] p-12 h-full flex flex-col space-y-10">
+                            <div className="flex justify-between items-center">
+                                <h3 className="text-blue-500 font-black italic text-sm tracking-widest uppercase">SESSION NOTES</h3>
+                                <button onClick={() => setBoardOpen(false)} className="text-zinc-600 hover:text-white"><Icon name="x" size={32}/></button>
+                            </div>
+                            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="flex-1 bg-zinc-900/50 p-10 rounded-[3rem] text-blue-400 font-mono text-xl outline-none resize-none border border-white/5" placeholder="// Add student corrections here..."></textarea>
+                            <button onClick={() => setNotes("")} className="w-full py-6 rounded-[2rem] bg-red-600/10 text-red-600 font-black uppercase text-[10px] tracking-widest hover:bg-red-600 hover:text-white transition-all">LIMPAR NOTAS</button>
+                        </div>
+                    </aside>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
